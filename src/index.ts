@@ -4,6 +4,8 @@ import https from "node:https";
 import axios from "axios";
 import { Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
+import Database from "better-sqlite3";
+
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat.js";
 import "dayjs/locale/uk.js";
@@ -11,13 +13,27 @@ import "dayjs/locale/uk.js";
 dayjs.extend(customParseFormat);
 // dayjs.locale('uk');
 
+const db = new Database("zoe.db", { verbose: console.log });
+db.pragma("journal_mode = WAL");
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    telegram_id INEGER UNIQUE,
+    queue_number TEXT
+  )
+`);
+
 const token = process.env.BOT_TOKEN;
 if (!token) {
   throw new Error("Missing BOT_TOKEN in environment (.env)");
 }
 const bot = new Telegraf(token);
 
-bot.start((ctx) => ctx.reply("Welcome to Zoe bot"));
+bot.start((ctx) => {
+  console.log("start ctx: ", ctx.from.id);
+  ctx.reply("Welcome to Zoe bot");
+});
 
 bot.launch(() => console.log("Zoe is running"));
 
@@ -71,11 +87,7 @@ axios
         schedule = updatedScheduleForQueue[0];
 
         const title = lastArticleTitle.split(" ");
-        date = dayjs(
-          `${title[3]} ${title[4]}`.toLowerCase(),
-          "DD MMMM",
-          "uk",
-        );
+        date = dayjs(`${title[3]} ${title[4]}`.toLowerCase(), "DD MMMM", "uk");
         break;
       }
       default: {
@@ -92,6 +104,13 @@ axios
     console.log("axios error message:", error.message);
   });
 
-bot.on(message(), (ctx) =>
-  ctx.reply(`${date.locale("en").format("dddd, DD MMMM")} \n\n${schedule}`),
-);
+bot.command("hello", async (ctx) => {
+  console.log("hello command", ctx.from.id);
+  ctx.from.id; // user who sent the command
+  ctx.chat.id; // chat in which the command was sent
+});
+
+bot.on(message(), (ctx) => {
+  // console.log("ctx: ", ctx);
+  ctx.reply(`${date.locale("en").format("dddd, DD MMMM")} \n\n${schedule}`);
+});

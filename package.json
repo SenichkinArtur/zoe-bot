@@ -13,6 +13,7 @@
     "build:watch": "tsc -w -p tsconfig.json"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.0.9",
     "concurrently": "^9.2.1",
     "nodemon": "^3.1.11",
@@ -20,6 +21,7 @@
   },
   "dependencies": {
     "axios": "^1.13.2",
+    "better-sqlite3": "^12.6.2",
     "dayjs": "^1.11.19",
     "dotenv": "^16.4.5",
     "fetch-to-curl": "^0.6.0",
