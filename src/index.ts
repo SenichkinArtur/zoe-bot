@@ -31,7 +31,9 @@ const main = async () => {
 
   const { date, schedule } = parsedData;
 
-  zoeBot.updateData(date, schedule);
+  console.log("schedule: ", schedule);
+
+  // zoeBot.updateData(date, schedule);
 };
 
 main().catch((err) => {

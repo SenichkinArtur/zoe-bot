@@ -2,15 +2,56 @@ import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat.js";
 import "dayjs/locale/uk.js";
+import type { Schedule } from "./types.js";
 
 dayjs.extend(customParseFormat);
 
-// TODO: probably extract all of the schedules (e.g. 1.1, 1.2, 2.1 etc)
-const extractSchedule = (articleArray: string[]): string => {
-  const schedule = articleArray.find((a: string) => a.includes("6.1"));
-  if (!schedule) return "";
+const QUEUES: (keyof Schedule)[] = [
+  "1.1",
+  "1.2",
+  "2.1",
+  "2.2",
+  "3.1",
+  "3.2",
+  "4.1",
+  "4.2",
+  "5.1",
+  "5.2",
+  "6.1",
+  "6.2",
+];
 
-  return schedule.split("<").slice(0, -1)[0] || "";
+const extractSchedule = (articleArray: string[]): Schedule => {
+  // TODO: handle diff types of schedule ("09:00 – 14:00" and "з 06:30 до 11:00")
+  const schedule: Schedule = {
+    "1.1": "",
+    "1.2": "",
+    "2.1": "",
+    "2.2": "",
+    "3.1": "",
+    "3.2": "",
+    "4.1": "",
+    "4.2": "",
+    "5.1": "",
+    "5.2": "",
+    "6.1": "",
+    "6.2": "",
+  };
+
+  QUEUES.forEach((queueNumber) => {
+    const scheduleItem: string | undefined = articleArray.find((a: string) =>
+      a.includes(queueNumber),
+    );
+    if (!scheduleItem) return;
+
+    schedule[queueNumber] = scheduleItem
+      .split("<")
+      .slice(0, -1)
+      .join("")
+      .slice(5); // TODO: handle diff types of titles ("6.1: " and "Черга 6.1: "). Currently works only "6.1: "
+  });
+
+  return schedule;
 };
 
 const parseTitleNew = (title: string): Dayjs | null => {
@@ -42,7 +83,7 @@ const parseTitleUpdated = (title: string): Dayjs | null => {
 
 export const parse = (
   data: string,
-): { date: Dayjs | null; schedule: string } | undefined => {
+): { date: Dayjs | null; schedule: Schedule } | undefined => {
   const mainSection = data.split('<main role="main">')[1]; // section with all schedules
   if (!mainSection) return undefined;
 
@@ -61,13 +102,15 @@ export const parse = (
 
   const parsers: Record<
     string,
-    () => { date: Dayjs | null; schedule: string }
+    () => { date: Dayjs | null; schedule: Schedule }
   > = {
-    "ДІЯТИМУТЬ ГПВ": () => ({ // new schedule 
+    // new schedule
+    "ДІЯТИМУТЬ ГПВ": () => ({
       date: parseTitleNew(lastArticleTitleTrimmed),
       schedule,
     }),
-    "ОНОВЛЕНО ГПВ": () => ({ // updated schedule
+    // updated schedule
+    "ОНОВЛЕНО ГПВ": () => ({
       date: parseTitleUpdated(lastArticleTitleTrimmed),
       schedule,
     }),
