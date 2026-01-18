@@ -1,116 +1,40 @@
 import "dotenv/config";
+import { parse } from "./parser.js";
+import { db_init } from "./db.js";
+import { getData } from "./request.js";
+import { createBot } from "./bot.js";
 
-import https from "node:https";
-import axios from "axios";
-import { Telegraf } from "telegraf";
-import { message } from "telegraf/filters";
-import Database from "better-sqlite3";
+const getToken = () => {
+  const token = process.env.BOT_TOKEN;
+  if (!token) throw new Error("BOT_TOKEN is missing");
 
-import dayjs from "dayjs";
-import customParseFormat from "dayjs/plugin/customParseFormat.js";
-import "dayjs/locale/uk.js";
+  return token;
+};
 
-dayjs.extend(customParseFormat);
-// dayjs.locale('uk');
+const main = async () => {
+  db_init();
 
-const db = new Database("zoe.db", { verbose: console.log });
-db.pragma("journal_mode = WAL");
+  const zoeBot = createBot(getToken());
+  zoeBot.init();
+  zoeBot.launch();
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    telegram_id INEGER UNIQUE,
-    queue_number TEXT
-  )
-`);
+  const rawHtml = await getData("https://www.zoe.com.ua/outage/");
+  if ("error" in rawHtml) {
+    throw new Error("error returned from zoe.com.ua");
+  }
 
-const token = process.env.BOT_TOKEN;
-if (!token) {
-  throw new Error("Missing BOT_TOKEN in environment (.env)");
-}
-const bot = new Telegraf(token);
+  const parsedData = parse(rawHtml.data);
 
-bot.start((ctx) => {
-  console.log("start ctx: ", ctx.from.id);
-  ctx.reply("Welcome to Zoe bot");
-});
+  if (!parsedData) {
+    throw new Error("error during parsing the data");
+  }
 
-bot.launch(() => console.log("Zoe is running"));
+  const { date, schedule } = parsedData;
 
-// agent that skips TLS verification for www.zoe.com.ua host
-const insecureAgentForZoe = new https.Agent({
-  rejectUnauthorized: false,
-  servername: "www.zoe.com.ua",
-});
+  zoeBot.updateData(date, schedule);
+};
 
-let schedule = "";
-let date = dayjs();
-
-axios
-  .get("https://www.zoe.com.ua/outage/", {
-    httpsAgent: insecureAgentForZoe,
-    proxy: false,
-  })
-  .then(function (response) {
-    const mainSection = response.data.split('<main role="main">')[1]; // section with all schedules
-    const articles = mainSection.split('<article id="'); // array of post with schedules
-    articles.shift(); // remove text before first article
-    const lastArticleArray = articles[0].split("\n"); // last posted schedule
-    const lastArticleTitle = lastArticleArray
-      .find((a: string) => a.includes("ПО ЗАПОРІЗЬКІЙ ОБЛАСТІ"))
-      .trim();
-    console.log("lastArticleTitle: ", lastArticleTitle);
-
-    switch (true) {
-      case lastArticleTitle.includes("ДІЯТИМУТЬ ГПВ"): {
-        // new schedule
-        const newScheduleForQueue = lastArticleArray
-          .find((a: string) => a.includes("6.1"))
-          .split("<");
-        newScheduleForQueue.pop();
-        schedule = newScheduleForQueue[0];
-
-        const title = lastArticleTitle.split(" ");
-        date = dayjs(
-          `${title[0].match(/\d+$/)[0]} ${title[1]}`.toLowerCase(),
-          "DD MMMM",
-          "uk",
-        );
-        break;
-      }
-      case lastArticleTitle.includes("ОНОВЛЕНО ГПВ"): {
-        // updated schedule
-        const updatedScheduleForQueue = lastArticleArray
-          .find((a: string) => a.includes("6.1"))
-          .split("<");
-        updatedScheduleForQueue.pop();
-        schedule = updatedScheduleForQueue[0];
-
-        const title = lastArticleTitle.split(" ");
-        date = dayjs(`${title[3]} ${title[4]}`.toLowerCase(), "DD MMMM", "uk");
-        break;
-      }
-      default: {
-        console.log("default");
-        // need to handle unknown post
-        break;
-      }
-    }
-
-    // console.log("qwe: ", dayjs(articleTitleWithDate));
-  })
-  .catch(function (error) {
-    console.log("axios error code:", error.code);
-    console.log("axios error message:", error.message);
-  });
-
-bot.command("hello", async (ctx) => {
-  console.log("hello command", ctx.from.id);
-  ctx.from.id; // user who sent the command
-  ctx.chat.id; // chat in which the command was sent
-});
-
-bot.on(message(), (ctx) => {
-  // console.log("ctx: ", ctx);
-  ctx.reply(`${date.locale("en").format("dddd, DD MMMM")} \n\n${schedule}`);
+main().catch((err) => {
+  console.error("Fatal error:", err.message);
+  process.exit(1);
 });
