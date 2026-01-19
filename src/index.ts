@@ -1,8 +1,16 @@
 import "dotenv/config";
 import { parse } from "./parser.js";
-import { db_init } from "./db.js";
+import {
+  dbInit,
+  getScheduleByDate,
+  insertSchedule,
+} from "./db.js";
 import { getData } from "./request.js";
-import { createBot } from "./bot.js";
+import { createBot, type ZoeBot } from "./bot.js";
+import { ScheduleType } from "./types.js";
+
+// const INTERVAL = 10 * 60 * 1000; // 10 minutes
+const INTERVAL = 30 * 1000; // 30 seconds for testing
 
 const getToken = () => {
   const token = process.env.BOT_TOKEN;
@@ -11,29 +19,49 @@ const getToken = () => {
   return token;
 };
 
-const main = async () => {
-  db_init();
-
-  const zoeBot = createBot(getToken());
-  zoeBot.init();
-  zoeBot.launch();
-
+const fetchAndUpdate = async (zoeBot: ZoeBot) => {
   const rawHtml = await getData("https://www.zoe.com.ua/outage/");
   if ("error" in rawHtml) {
-    throw new Error("error returned from zoe.com.ua");
+    console.error("error returned from zoe.com.ua");
+    return;
   }
 
   const parsedData = parse(rawHtml.data);
 
-  if (!parsedData) {
-    throw new Error("error during parsing the data");
+  if (!parsedData || !parsedData?.date) {
+    console.error("error during parsing the data");
+    return;
   }
 
-  const { date, schedule } = parsedData;
+  const { date, schedule, scheduleType } = parsedData;
+  const currentSchedule = getScheduleByDate(date);
 
-  console.log("schedule: ", schedule);
+  if (scheduleType === ScheduleType.New) {
+    insertSchedule(date, schedule);
+    zoeBot.sendMessageNew(date, schedule);
 
-  // zoeBot.updateData(date, schedule);
+    return undefined;
+  }
+
+  if (scheduleType === ScheduleType.Updated) {
+    zoeBot.sendMessageUpdated(date, schedule);
+
+    return undefined;
+  }
+};
+
+const main = async () => {
+  dbInit();
+
+  const zoeBot: ZoeBot = createBot(getToken());
+  zoeBot.init();
+  zoeBot.launch();
+
+  fetchAndUpdate(zoeBot);
+
+  setInterval(() => {
+    fetchAndUpdate(zoeBot);
+  }, INTERVAL);
 };
 
 main().catch((err) => {

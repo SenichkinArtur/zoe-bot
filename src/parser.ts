@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat.js";
 import "dayjs/locale/uk.js";
-import type { Schedule } from "./types.js";
+import { ScheduleType, type Schedule } from "./types.js";
 
 dayjs.extend(customParseFormat);
 
@@ -83,7 +83,9 @@ const parseTitleUpdated = (title: string): Dayjs | null => {
 
 export const parse = (
   data: string,
-): { date: Dayjs | null; schedule: Schedule } | undefined => {
+):
+  | { date: Dayjs | null; schedule: Schedule; scheduleType: ScheduleType }
+  | undefined => {
   const mainSection = data.split('<main role="main">')[1]; // section with all schedules
   if (!mainSection) return undefined;
 
@@ -102,17 +104,19 @@ export const parse = (
 
   const parsers: Record<
     string,
-    () => { date: Dayjs | null; schedule: Schedule }
+    () => { date: Dayjs | null; schedule: Schedule; scheduleType: ScheduleType }
   > = {
     // new schedule
     "ДІЯТИМУТЬ ГПВ": () => ({
       date: parseTitleNew(lastArticleTitleTrimmed),
       schedule,
+      scheduleType: ScheduleType.New,
     }),
     // updated schedule
     "ОНОВЛЕНО ГПВ": () => ({
       date: parseTitleUpdated(lastArticleTitleTrimmed),
       schedule,
+      scheduleType: ScheduleType.Updated,
     }),
   };
   const matchedKey = Object.keys(parsers).find((key) =>

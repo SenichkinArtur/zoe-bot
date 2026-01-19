@@ -1,3 +1,22 @@
+export type User = {
+  id: number;
+  date: string;
+  telegram_user_id: number;
+  group_number: string;
+  locale: string;
+}
+
+export enum ScheduleType {
+  New = "new",
+  Updated = "updated"
+}
+
+export type ScheduleRecord = {
+  id: number;
+  date: string;
+  queues: Schedule;
+};
+
 export type Schedule = {
   "1.1": string;
   "1.2": string;
