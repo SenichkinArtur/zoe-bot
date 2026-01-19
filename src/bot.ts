@@ -3,7 +3,7 @@ import { message } from "telegraf/filters";
 import type { Dayjs } from "dayjs";
 import type { Schedule } from "./types.js";
 import {
-  getUserByTelegramUserId,
+  getUserByTgUserId,
   insertUser,
   removeUserByTgUserId,
   setUserGroupNumberById,
@@ -34,7 +34,6 @@ export type ZoeBot = {
 export const createBot = (token: string): ZoeBot => {
   const bot: Telegraf = new Telegraf(token);
 
-  let chatId: number | null = null;
   let currentDate: Dayjs | null = null;
   let currentSchedule: Schedule = {
     "1.1": "",
@@ -54,11 +53,10 @@ export const createBot = (token: string): ZoeBot => {
   const init = () => {
     bot.start((ctx) => {
       console.log("bot.start");
-      const user = getUserByTelegramUserId(ctx.from.id);
+      const user = getUserByTgUserId(ctx.from.id);
       if (user) {
         removeUserByTgUserId(ctx.from.id);
       }
-      chatId = ctx.from.id;
       insertUser(ctx.from.id);
       ctx.reply(`
         Hey, I'm Zoe 😊 \n\nI'll keep you updated on power outage schedules\n\nTo get started, just send me your outage group number (for example: 1.1, 1.2)
@@ -66,7 +64,7 @@ export const createBot = (token: string): ZoeBot => {
     });
 
     bot.on(message(), (ctx) => {
-      const user = getUserByTelegramUserId(ctx.from.id);
+      const user = getUserByTgUserId(ctx.from.id);
       if (user) {
         if (!user.group_number) {
           if ("text" in ctx.update.message) {
@@ -74,7 +72,7 @@ export const createBot = (token: string): ZoeBot => {
             const groupNumber = GROUP_NUMBERS.find((n) => n === text);
 
             if (groupNumber) {
-              setUserGroupNumberById(user.id, +groupNumber);
+              setUserGroupNumberById(user.id, groupNumber);
               ctx.reply(
                 `Nice! Group ${groupNumber} it is ⚡\nI'll keep an eye on things for you`,
               );
@@ -97,24 +95,28 @@ export const createBot = (token: string): ZoeBot => {
   const sendMessageNew = (date: Dayjs | null, schedule: Schedule) => {
     console.log("sendMessageNew");
 
+    // TODO: get all users and send message to all of them
+
     // console.log("chatId && date && schedule: ", chatId, date, schedule);
-    if (chatId && date && schedule) {
-      // bot.telegram.sendMessage(
-      //   chatId,
-      //   `${date.locale("en").format("dddd, DD MMMM")} \n\n6.1: ${schedule["6.1"]}`,
-      // );
-    }
+    // if (chatId && date && schedule) {
+    // bot.telegram.sendMessage(
+    //   chatId,
+    //   `${date.locale("en").format("dddd, DD MMMM")} \n\n6.1: ${schedule["6.1"]}`,
+    // );
+    // }
   };
 
   const sendMessageUpdated = (date: Dayjs | null, schedule: Schedule) => {
     console.log("sendMessageUpdated");
 
-    if (chatId && date && schedule) {
-      // bot.telegram.sendMessage(
-      //   chatId,
-      //   `${date.locale("en").format("dddd, DD MMMM")} \n\n6.1: ${schedule["6.1"]}`,
-      // );
-    }
+    // TODO: get users by updated group number and send message to all of them
+
+    // if (chatId && date && schedule) {
+    // bot.telegram.sendMessage(
+    //   chatId,
+    //   `${date.locale("en").format("dddd, DD MMMM")} \n\n6.1: ${schedule["6.1"]}`,
+    // );
+    // }
   };
 
   const launch = () => {

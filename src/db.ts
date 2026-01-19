@@ -1,4 +1,5 @@
 import Database from "better-sqlite3";
+import type { Statement } from "better-sqlite3";
 import type { Schedule, ScheduleRecord, User } from "./types.js";
 import type { Dayjs } from "dayjs";
 
@@ -7,6 +8,14 @@ const DB_DATE_FORMAT = "DD.MM.YYYY";
 const db = new Database("zoe.db", {
   // verbose: console.log,
 });
+
+let insertUserStmt: Statement;
+let removeUserByTgUserIdStmt: Statement;
+let getUserStmt: Statement;
+let setUserGroupNumberByIdStmt: Statement;
+let insertScheduleStmt: Statement;
+let checkIfScheduleExistsByDateStmt: Statement;
+let getScheduleByDateStmt: Statement;
 
 export const dbInit = () => {
   db.pragma("journal_mode = WAL");
@@ -24,86 +33,111 @@ export const dbInit = () => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       date TEXT UNIQUE NOT NULL,
       queues TEXT NOT NULL,       -- JSON: {"1.1": "...", "1.2": "...", ...}
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT
     )
   `);
+  insertUserStmt = db.prepare(
+    "INSERT INTO users (telegram_user_id) VALUES (?)",
+  );
+  removeUserByTgUserIdStmt = db.prepare(
+    "DELETE FROM users WHERE telegram_user_id = ?",
+  );
+  getUserStmt = db.prepare(
+    "SELECT * FROM users WHERE telegram_user_id = ?",
+  );
+  setUserGroupNumberByIdStmt = db.prepare(
+    "UPDATE users SET group_number = ? WHERE id = ?",
+  );
+  insertScheduleStmt = db.prepare(
+    "INSERT INTO schedules (date, queues) VALUES (?, ?)",
+  );
+  checkIfScheduleExistsByDateStmt = db.prepare(
+    "SELECT EXISTS (SELECT 1 FROM schedules WHERE date = ?) AS exists_flag",
+  );
+  getScheduleByDateStmt = db.prepare(
+    "SELECT * FROM schedules WHERE date = ?",
+  );
 };
 
-export const insertUser = (telegramUserId: number) => {
+export const insertUser = (telegramUserId: number): boolean => {
   try {
-    const insertUser = db.prepare(
-      "INSERT INTO users (telegram_user_id) VALUES (?)",
-    );
-    insertUser.run(telegramUserId);
+    insertUserStmt.run(telegramUserId);
+    return true;
   } catch (e) {
     console.error(e);
+    return false;
   }
 };
 
-export const removeUserByTgUserId = (telegramUserId: number) => {
+export const removeUserByTgUserId = (telegramUserId: number): boolean => {
   try {
-    const stmt = db.prepare(
-      "DELETE FROM users WHERE telegram_user_id = ?",
-    );
-    stmt.run(telegramUserId);
+    removeUserByTgUserIdStmt.run(telegramUserId);
+    return true;
   } catch (e) {
     console.error(e);
+    return false;
   }
 };
 
-export const getUserByTelegramUserId = (
-  telegramUserId: number,
-): User | undefined => {
+export const getUserByTgUserId = (telegramUserId: number): User | null => {
   try {
-    const getUser = db.prepare(
-      "SELECT * FROM users WHERE telegram_user_id = ?",
-    );
-    return getUser.get(telegramUserId) as User | undefined;
+    const user = getUserStmt.get(telegramUserId) as User | undefined;
+    return user || null;
   } catch (e) {
     console.error(e);
+    return null;
   }
 };
 
 export const setUserGroupNumberById = (
   userId: number,
-  groupNumber: number,
-) => {
+  groupNumber: string,
+): boolean => {
   try {
-    const stmt = db.prepare("UPDATE users SET group_number = ? WHERE id = ?");
-    stmt.run(groupNumber, userId);
+    setUserGroupNumberByIdStmt.run(groupNumber, userId);
+    return true;
   } catch (e) {
     console.error(e);
+    return false;
   }
 };
 
-export const insertSchedule = (date: Dayjs, schedule: Schedule) => {
+export const insertSchedule = (date: Dayjs, schedule: Schedule): boolean => {
   try {
-    const insertSchedule = db.prepare(
-      "INSERT INTO schedules (date, queues) VALUES (?, ?)",
+    insertScheduleStmt.run(
+      date.format(DB_DATE_FORMAT),
+      JSON.stringify(schedule),
     );
-    insertSchedule.run(date.format(DB_DATE_FORMAT), JSON.stringify(schedule));
+    return true;
   } catch (e) {
     console.error(e);
+    return false;
   }
 };
 
-export const checkIfScheduleExistsByDate = (date: Dayjs) => {
-  const checkSchedule = db.prepare(
-    "SELECT EXISTS (SELECT 1 FROM schedules WHERE date = ?) AS exists_flag",
-  );
-  const result = checkSchedule.get(date.format(DB_DATE_FORMAT)) as
-    | { exists_flag: number }
-    | undefined;
+// export const checkIfScheduleExistsByDate = (date: Dayjs): boolean => {
+//   try {
+//     const result = checkIfScheduleExistsByDateStmt.get(
+//       date.format(DB_DATE_FORMAT),
+//     ) as { exists_flag: number } | undefined;
 
-  return result?.exists_flag;
-};
+//     return !!result?.exists_flag;
+//   } catch (e) {
+//     console.error(e);
+//     return false;
+//   }
+// };
 
 export const getScheduleByDate = (date: Dayjs): Schedule | null => {
-  const getSchedule = db.prepare("SELECT * FROM schedules WHERE date = ?");
-  const schedule = getSchedule.get(date.format(DB_DATE_FORMAT)) as
-    | ScheduleRecord
-    | undefined;
+  try {
+    const schedule = getScheduleByDateStmt.get(date.format(DB_DATE_FORMAT)) as
+      | ScheduleRecord
+      | undefined;
 
-  return schedule?.queues || null;
+    return schedule ? JSON.parse(schedule.queues) : null;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
 };
