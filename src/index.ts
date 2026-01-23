@@ -5,8 +5,8 @@ import { getData } from "./request.js";
 import { createBot, type ZoeBot } from "./bot.js";
 import { ScheduleType, type Schedule } from "./types.js";
 
-// const INTERVAL = 10 * 60 * 1000; // 10 minutes
-const INTERVAL = 30 * 1000; // 30 seconds for testing
+const INTERVAL = 10 * 60 * 1000; // 10 minutes
+// const INTERVAL = 30 * 1000; // 30 seconds for testing
 
 const getToken = () => {
   const token = process.env.BOT_TOKEN;
