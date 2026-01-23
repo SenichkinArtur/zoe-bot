@@ -1,6 +1,11 @@
 import "dotenv/config";
 import { parse } from "./parser.js";
-import { dbInit, getScheduleByDate, insertSchedule, updateSchedule } from "./db.js";
+import {
+  dbInit,
+  getScheduleByDate,
+  insertSchedule,
+  updateSchedule,
+} from "./db.js";
 import { getData } from "./request.js";
 import { createBot, type ZoeBot } from "./bot.js";
 import { ScheduleType, type Schedule } from "./types.js";
@@ -16,9 +21,14 @@ const getToken = () => {
 };
 
 const fetchAndUpdate = async (zoeBot: ZoeBot) => {
-  const rawHtml = await getData("https://www.zoe.com.ua/outage/");
+  const rawHtml = await getData();
   if ("error" in rawHtml) {
     console.error("error returned from zoe.com.ua", rawHtml.error);
+    return;
+  }
+
+  if (rawHtml.data === "") {
+    console.error("empty response");
     return;
   }
 
@@ -44,7 +54,7 @@ const fetchAndUpdate = async (zoeBot: ZoeBot) => {
   }
 
   if (scheduleType === ScheduleType.Updated) {
-  // if (true) {
+    // if (true) {
     const currentSchedule = {
       "1.1": "00:00 – 05:00, 09:00 – 14:00, 18:00 – 23:00",
       "1.2": "00:00 – 05:00, 09:00 – 14:00",
