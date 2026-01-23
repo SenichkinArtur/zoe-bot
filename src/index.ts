@@ -53,23 +53,7 @@ const fetchAndUpdate = async (zoeBot: ZoeBot) => {
     return undefined;
   }
 
-  if (scheduleType === ScheduleType.Updated) {
-    // if (true) {
-    const currentSchedule = {
-      "1.1": "00:00 – 05:00, 09:00 – 14:00, 18:00 – 23:00",
-      "1.2": "00:00 – 05:00, 09:00 – 14:00",
-      "2.1": "00:00 – 00:30, 04:30 – 09:30, 13:30 – 18:30, 22:30 – 24:00",
-      "2.2": "00:00 – 00:30, 04:30 – 09:30, 13:30 – 18:30, 22:30 – 24:00",
-      "3.1": "00:00 – 05:00, 09:00 – 14:00, 18:00 – 23:00",
-      "3.2": "00:00 – 05:00, 09:00 – 14:00, 18:00 – 23:00",
-      "4.1": "00:00 – 00:30, 04:30 – 09:30, 13:30 – 18:30, 22:30 – 24:00",
-      "4.2": "00:00 – 00:30, 04:30 – 09:30, 13:30 – 18:30, 22:30 – 24:00",
-      "5.1": "00:00 – 05:00, 09:00 – 14:00, 18:00 – 23:00",
-      "5.2": "00:00 – 05:00, 09:00 – 14:00, 18:00 – 23:00",
-      "6.1": "00:00 – 00:30, 04:30 – 09:30, 13:30 – 18:30",
-      "6.2": "00:00 – 00:30, 04:30 – 09:30, 13:30 – 18:30, 22:30 – 24:00",
-    };
-
+  if (scheduleType === ScheduleType.Updated && currentSchedule) {
     const updatedSchedule: Partial<Schedule> = {};
 
     for (const [key, value] of Object.entries(schedule) as [
@@ -82,8 +66,6 @@ const fetchAndUpdate = async (zoeBot: ZoeBot) => {
     }
     updateSchedule(date, schedule);
     zoeBot.sendMessageUpdated(date, updatedSchedule);
-
-    // TODO: update data in schedules table
 
     return undefined;
   }
