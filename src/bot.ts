@@ -3,7 +3,9 @@ import { message } from "telegraf/filters";
 import type { Dayjs } from "dayjs";
 import type { Schedule } from "./types.js";
 import {
+  getAllUsers,
   getUserByTgUserId,
+  getUsersByGroupNumbers,
   insertUser,
   removeUserByTgUserId,
   setUserGroupNumberById,
@@ -27,8 +29,11 @@ const GROUP_NUMBERS = [
 export type ZoeBot = {
   init: () => void;
   launch: () => void;
-  sendMessageNew: (date: Dayjs | null, schedule: Schedule) => void;
-  sendMessageUpdated: (date: Dayjs | null, schedule: Schedule) => void;
+  sendMessagesNew: (date: Dayjs | null, schedule: Schedule) => void;
+  sendMessageUpdated: (
+    date: Dayjs | null,
+    updatedSchedule: Partial<Schedule>,
+  ) => void;
 };
 
 export const createBot = (token: string): ZoeBot => {
@@ -74,7 +79,7 @@ export const createBot = (token: string): ZoeBot => {
             if (groupNumber) {
               setUserGroupNumberById(user.id, groupNumber);
               ctx.reply(
-                `Nice! Group ${groupNumber} it is ⚡\nI'll keep an eye on things for you`,
+                `Nice! Group ${groupNumber} it is \nI'll keep an eye on things for you`,
               );
             } else {
               ctx.reply(
@@ -92,36 +97,58 @@ export const createBot = (token: string): ZoeBot => {
     });
   };
 
-  const sendMessageNew = (date: Dayjs | null, schedule: Schedule) => {
-    console.log("sendMessageNew");
+  const sendMessagesNew = (date: Dayjs | null, schedule: Schedule) => {
+    console.log("sendMessagesNew");
+    try {
+      if (!date) return undefined;
+      const users = getAllUsers();
 
-    // TODO: get all users and send message to all of them
-
-    // console.log("chatId && date && schedule: ", chatId, date, schedule);
-    // if (chatId && date && schedule) {
-    // bot.telegram.sendMessage(
-    //   chatId,
-    //   `${date.locale("en").format("dddd, DD MMMM")} \n\n6.1: ${schedule["6.1"]}`,
-    // );
-    // }
+      users.forEach((user) => {
+        const groupKey = user.group_number as keyof Schedule;
+        bot.telegram
+          .sendMessage(
+            user.telegram_user_id,
+            `${date.locale("en").format("dddd, DD MMMM")} \n\n${groupKey}: ${schedule[groupKey]}`,
+          )
+          .catch((e) => {
+            console.error(
+              `Failed to send to user ${user.telegram_user_id}:`,
+              e.message,
+            );
+          });
+      });
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const sendMessageUpdated = (date: Dayjs | null, schedule: Schedule) => {
-    console.log("sendMessageUpdated");
+  const sendMessageUpdated = (
+    date: Dayjs | null,
+    updatedSchedule: Partial<Schedule>,
+  ) => {
+    if (!date) return undefined;
+    const updatedGroups = Object.keys(updatedSchedule);
+    const usersToSend = getUsersByGroupNumbers(updatedGroups);
 
-    // TODO: get users by updated group number and send message to all of them
-
-    // if (chatId && date && schedule) {
-    // bot.telegram.sendMessage(
-    //   chatId,
-    //   `${date.locale("en").format("dddd, DD MMMM")} \n\n6.1: ${schedule["6.1"]}`,
-    // );
-    // }
+    usersToSend.forEach((user) => {
+      const groupKey = user.group_number as keyof Schedule;
+      bot.telegram
+        .sendMessage(
+          user.telegram_user_id,
+          `Updated for: ${date.locale("en").format("dddd, DD MMMM")} \n\n${groupKey}: ${updatedSchedule[groupKey]}`,
+        )
+        .catch((e) => {
+          console.error(
+            `Failed to send to user ${user.telegram_user_id}:`,
+            e.message,
+          );
+        });
+    });
   };
 
   const launch = () => {
     bot.launch(() => console.log("Zoe bot is running"));
   };
 
-  return { init, launch, sendMessageNew, sendMessageUpdated };
+  return { init, launch, sendMessagesNew, sendMessageUpdated };
 };

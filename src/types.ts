@@ -14,7 +14,7 @@ export enum ScheduleType {
 export type ScheduleRecord = {
   id: number;
   date: string;
-  queues: string;
+  schedules: string;
 };
 
 export type Schedule = {
