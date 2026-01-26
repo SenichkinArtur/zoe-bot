@@ -6,6 +6,18 @@ import { ScheduleType, type Schedule } from "./types.js";
 
 dayjs.extend(customParseFormat);
 
+const decodeHtmlEntities = (text: string): string => {
+  return text
+    .replace(/&#8211;/g, "–")
+    .replace(/&#8212;/g, "—")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#(\d+);/g, (_match, dec) => String.fromCharCode(dec));
+};
+
 const QUEUES: (keyof Schedule)[] = [
   "1.1",
   "1.2",
@@ -22,7 +34,6 @@ const QUEUES: (keyof Schedule)[] = [
 ];
 
 const extractSchedule = (articleArray: string[]): Schedule => {
-  // TODO: handle diff types of schedule ("09:00 – 14:00" and "з 06:30 до 11:00")
   const schedule: Schedule = {
     "1.1": "",
     "1.2": "",
@@ -44,11 +55,17 @@ const extractSchedule = (articleArray: string[]): Schedule => {
     );
     if (!scheduleItem) return;
 
-    schedule[queueNumber] = scheduleItem
-      .split("<")
-      .slice(0, -1)
-      .join("")
-      .slice(5); // TODO: handle diff types of titles ("6.1: " and "Черга 6.1: "). Currently works only "6.1: "
+    const rawSchedule = scheduleItem
+      .replace("<p>", "")
+      .replace("</p>", "")
+      .replace("<br>", "")
+      .replace("<br />", "")
+      .replace("Черга ", "")
+      .replaceAll("з ", "")
+      .replaceAll("до", "–")
+      .slice(5);
+
+    schedule[queueNumber] = decodeHtmlEntities(rawSchedule);
   });
 
   return schedule;
