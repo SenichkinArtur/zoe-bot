@@ -4,12 +4,14 @@ import type { Dayjs } from "dayjs";
 import type { Schedule } from "./types.js";
 import {
   getAllUsers,
+  getScheduleByDate,
   getUserByTgUserId,
   getUsersByGroupNumbers,
   insertUser,
   removeUserByTgUserId,
   setUserGroupNumberById,
 } from "./db.js";
+import dayjs from "dayjs";
 
 const GROUP_NUMBERS = [
   "1.1",
@@ -74,13 +76,32 @@ export const createBot = (token: string): ZoeBot => {
         if (!user.group_number) {
           if ("text" in ctx.update.message) {
             const text = ctx.update.message.text;
-            const groupNumber = GROUP_NUMBERS.find((n) => n === text);
+            const groupNumber = GROUP_NUMBERS.find(
+              (n) => n === text,
+            ) as keyof Schedule;
 
             if (groupNumber) {
               setUserGroupNumberById(user.id, groupNumber);
               ctx.reply(
                 `Nice! Group ${groupNumber} it is \nI'll keep an eye on things for you`,
               );
+              const todaysDate = dayjs();
+              const currentSchedule: Schedule | null =
+                getScheduleByDate(todaysDate);
+
+              if (currentSchedule) {
+                bot.telegram
+                  .sendMessage(
+                    user.telegram_user_id,
+                    `${todaysDate.locale("en").format("dddd, DD MMMM")} \n\n${groupNumber}: ${currentSchedule[groupNumber]}`,
+                  )
+                  .catch((e) => {
+                    console.error(
+                      `Failed to send to user ${user.telegram_user_id}:`,
+                      e.message,
+                    );
+                  });
+              }
             } else {
               ctx.reply(
                 `That one confused me a bit 😅 \nTry sending just the group number - 1.1, 1.2, and so on`,
