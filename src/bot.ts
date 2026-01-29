@@ -1,7 +1,7 @@
-import { Telegraf } from "telegraf";
+import { Telegraf, Context } from "telegraf";
 import { message } from "telegraf/filters";
 import type { Dayjs } from "dayjs";
-import type { Schedule } from "./types.js";
+import type { Schedule, User } from "./types.js";
 import {
   getAllUsers,
   getScheduleByDate,
@@ -41,22 +41,6 @@ export type ZoeBot = {
 export const createBot = (token: string): ZoeBot => {
   const bot: Telegraf = new Telegraf(token);
 
-  let currentDate: Dayjs | null = null;
-  let currentSchedule: Schedule = {
-    "1.1": "",
-    "1.2": "",
-    "2.1": "",
-    "2.2": "",
-    "3.1": "",
-    "3.2": "",
-    "4.1": "",
-    "4.2": "",
-    "5.1": "",
-    "5.2": "",
-    "6.1": "",
-    "6.2": "",
-  };
-
   const init = () => {
     bot.start((ctx) => {
       console.log("bot.start");
@@ -70,7 +54,7 @@ export const createBot = (token: string): ZoeBot => {
       `);
     });
 
-    bot.on(message(), (ctx) => {
+    bot.on(message(), async (ctx) => {
       const user = getUserByTgUserId(ctx.from.id);
       if (user) {
         if (!user.group_number) {
@@ -80,42 +64,44 @@ export const createBot = (token: string): ZoeBot => {
               (n) => n === text,
             ) as keyof Schedule;
 
-            if (groupNumber) {
-              setUserGroupNumberById(user.id, groupNumber);
-              ctx.reply(
-                `Nice! Group ${groupNumber} it is \nI'll keep an eye on things for you`,
-              );
-              const todaysDate = dayjs();
-              const currentSchedule: Schedule | null =
-                getScheduleByDate(todaysDate);
-
-              if (currentSchedule) {
-                bot.telegram
-                  .sendMessage(
-                    user.telegram_user_id,
-                    `${todaysDate.locale("en").format("dddd, DD MMMM")} \n\n${groupNumber}: ${currentSchedule[groupNumber]}`,
-                  )
-                  .catch((e) => {
-                    console.error(
-                      `Failed to send to user ${user.telegram_user_id}:`,
-                      e.message,
-                    );
-                  });
-              }
-            } else {
-              ctx.reply(
-                `That one confused me a bit 😅 \nTry sending just the group number - 1.1, 1.2, and so on`,
-              );
-            }
+            await setUsersGroup(ctx, user, groupNumber);
           }
         }
       }
-
-      if (!currentDate || !currentSchedule) return;
-      // ctx.reply(
-      //   `${currentDate.locale("en").format("dddd, DD MMMM")} \n\n6.1: ${currentSchedule["6.1"]}`,
-      // );
     });
+  };
+
+  const setUsersGroup = async (
+    ctx: Context,
+    user: User | null,
+    groupNumber: keyof Schedule,
+  ) => {
+    if (groupNumber && user) {
+      setUserGroupNumberById(user.id, groupNumber);
+      await ctx.reply(
+        `Nice! Group ${groupNumber} it is ⚡ \nI'll keep an eye on things for you 👀`,
+      );
+      const todaysDate = dayjs();
+      const currentSchedule: Schedule | null = getScheduleByDate(todaysDate);
+
+      if (!currentSchedule) return undefined;
+
+      await bot.telegram
+        .sendMessage(
+          user.telegram_user_id,
+          `${todaysDate.locale("en").format("dddd, DD MMMM")} \n\n${groupNumber}: ${currentSchedule[groupNumber]}`,
+        )
+        .catch((e) => {
+          console.error(
+            `Failed to send to user ${user.telegram_user_id}:`,
+            e.message,
+          );
+        });
+    } else {
+      await ctx.reply(
+        `That one confused me a bit 😅 \nTry sending just the group number - 1.1, 1.2, and so on`,
+      );
+    }
   };
 
   const sendMessagesNew = (date: Dayjs | null, schedule: Schedule) => {
@@ -167,8 +153,33 @@ export const createBot = (token: string): ZoeBot => {
     });
   };
 
+  bot.command("group", async (ctx) => {
+    const user: User | null = getUserByTgUserId(ctx.from.id);
+    const args = ctx.message.text.split(" ").slice(1);
+    const commandValue = args.join("");
+    const groupNumber = GROUP_NUMBERS.find(
+      (n) => n === commandValue,
+    ) as keyof Schedule;
+
+    await setUsersGroup(ctx, user, groupNumber);
+  });
+
+  bot.command("help", async (ctx) => {
+    ctx.reply(`
+- /start - starts bot 
+- /group - change group number (e.g. /group 1.2);
+    `);
+  });
+
   const launch = () => {
     bot.launch(() => console.log("Zoe bot is running"));
+
+    bot.telegram.setMyCommands([
+      {
+        command: "help",
+        description: "Shows help information",
+      },
+    ]);
   };
 
   return { init, launch, sendMessagesNew, sendMessageUpdated };
