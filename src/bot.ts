@@ -31,25 +31,25 @@ const GROUP_NUMBERS = [
 export type ZoeBot = {
   init: () => void;
   launch: () => void;
-  sendMessagesNew: (date: Dayjs | null, schedule: Schedule) => void;
+  sendMessagesNew: (date: Dayjs | null, schedule: Schedule) => Promise<void>;
   sendMessageUpdated: (
     date: Dayjs | null,
     updatedSchedule: Partial<Schedule>,
-  ) => void;
+  ) => Promise<void>;
 };
 
 export const createBot = (token: string): ZoeBot => {
   const bot: Telegraf = new Telegraf(token);
 
   const init = () => {
-    bot.start((ctx) => {
+    bot.start(async (ctx) => {
       console.log("bot.start");
       const user = getUserByTgUserId(ctx.from.id);
       if (user) {
         removeUserByTgUserId(ctx.from.id);
       }
       insertUser(ctx.from.id);
-      ctx.reply(`
+      await ctx.reply(`
         Hey, I'm Zoe 😊 \n\nI'll keep you updated on power outage schedules\n\nTo get started, just send me your outage group number (for example: 1.1, 1.2)
       `);
     });
@@ -75,7 +75,7 @@ export const createBot = (token: string): ZoeBot => {
     ctx: Context,
     user: User | null,
     groupNumber: keyof Schedule,
-  ) => {
+  ): Promise<void> => {
     if (groupNumber && user) {
       setUserGroupNumberById(user.id, groupNumber);
       await ctx.reply(
@@ -84,7 +84,7 @@ export const createBot = (token: string): ZoeBot => {
       const todaysDate = dayjs();
       const currentSchedule: Schedule | null = getScheduleByDate(todaysDate);
 
-      if (!currentSchedule) return undefined;
+      if (!currentSchedule) return;
 
       await bot.telegram
         .sendMessage(
@@ -104,18 +104,52 @@ export const createBot = (token: string): ZoeBot => {
     }
   };
 
-  const sendMessagesNew = (date: Dayjs | null, schedule: Schedule) => {
+  const sendMessagesNew = async (
+    date: Dayjs | null,
+    schedule: Schedule,
+  ): Promise<void> => {
     console.log("sendMessagesNew");
     try {
       if (!date) return undefined;
       const users = getAllUsers();
 
-      users.forEach((user) => {
+      await Promise.all(
+        users.map(async (user) => {
+          const groupKey = user.group_number as keyof Schedule;
+          return bot.telegram
+            .sendMessage(
+              user.telegram_user_id,
+              `${date.locale("en").format("dddd, DD MMMM")} \n\n${groupKey}: ${schedule[groupKey]}`,
+            )
+            .catch((e) => {
+              console.error(
+                `Failed to send to user ${user.telegram_user_id}:`,
+                e.message,
+              );
+            });
+        }),
+      );
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const sendMessageUpdated = async (
+    date: Dayjs | null,
+    updatedSchedule: Partial<Schedule>,
+  ): Promise<void> => {
+    if (!date) return;
+
+    const updatedGroups = Object.keys(updatedSchedule);
+    const usersToSend = getUsersByGroupNumbers(updatedGroups);
+
+    await Promise.all(
+      usersToSend.map(async (user) => {
         const groupKey = user.group_number as keyof Schedule;
-        bot.telegram
+        return bot.telegram
           .sendMessage(
             user.telegram_user_id,
-            `${date.locale("en").format("dddd, DD MMMM")} \n\n${groupKey}: ${schedule[groupKey]}`,
+            `Updated for: ${date.locale("en").format("dddd, DD MMMM")} \n\n${groupKey}: ${updatedSchedule[groupKey]}`,
           )
           .catch((e) => {
             console.error(
@@ -123,34 +157,8 @@ export const createBot = (token: string): ZoeBot => {
               e.message,
             );
           });
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const sendMessageUpdated = (
-    date: Dayjs | null,
-    updatedSchedule: Partial<Schedule>,
-  ) => {
-    if (!date) return undefined;
-    const updatedGroups = Object.keys(updatedSchedule);
-    const usersToSend = getUsersByGroupNumbers(updatedGroups);
-
-    usersToSend.forEach((user) => {
-      const groupKey = user.group_number as keyof Schedule;
-      bot.telegram
-        .sendMessage(
-          user.telegram_user_id,
-          `Updated for: ${date.locale("en").format("dddd, DD MMMM")} \n\n${groupKey}: ${updatedSchedule[groupKey]}`,
-        )
-        .catch((e) => {
-          console.error(
-            `Failed to send to user ${user.telegram_user_id}:`,
-            e.message,
-          );
-        });
-    });
+      }),
+    );
   };
 
   bot.command("group", async (ctx) => {
@@ -166,8 +174,8 @@ export const createBot = (token: string): ZoeBot => {
 
   bot.command("help", async (ctx) => {
     ctx.reply(`
-- /start - starts bot 
-- /group - change group number (e.g. /group 1.2);
+- /start - Starts the bot
+- /group <number> - Change your group number (e.g. /group 1.2);
     `);
   });
 

@@ -43,14 +43,14 @@ const fetchAndUpdate = async (zoeBot: ZoeBot) => {
   const currentSchedule = getScheduleByDate(date);
 
   if (JSON.stringify(schedule) === JSON.stringify(currentSchedule)) {
-    return undefined;
+    return;
   }
 
   if (scheduleType === ScheduleType.New) {
     insertSchedule(date, schedule);
-    zoeBot.sendMessagesNew(date, schedule);
+    await zoeBot.sendMessagesNew(date, schedule);
 
-    return undefined;
+    return;
   }
 
   if (scheduleType === ScheduleType.Updated && currentSchedule) {
@@ -65,9 +65,9 @@ const fetchAndUpdate = async (zoeBot: ZoeBot) => {
       }
     }
     updateSchedule(date, schedule);
-    zoeBot.sendMessageUpdated(date, updatedSchedule);
+    await zoeBot.sendMessageUpdated(date, updatedSchedule);
 
-    return undefined;
+    return;
   }
 };
 
