@@ -78,7 +78,7 @@ const main = async () => {
   zoeBot.init();
   zoeBot.launch();
 
-  fetchAndUpdate(zoeBot);
+  await fetchAndUpdate(zoeBot);
 
   setInterval(() => {
     fetchAndUpdate(zoeBot);

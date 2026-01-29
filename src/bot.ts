@@ -161,6 +161,50 @@ export const createBot = (token: string): ZoeBot => {
     );
   };
 
+  const sendPersonalScheduleCommand = async (
+    ctx: Context,
+    date: Dayjs,
+    fallbackMsg: string,
+  ): Promise<void> => {
+    if (!ctx.from) return;
+
+    const schedule = getScheduleByDate(date);
+    const user = getUserByTgUserId(ctx.from.id);
+
+    if (schedule && user) {
+      const groupNumber = user.group_number as keyof Schedule;
+
+      await ctx.reply(
+        `${date.locale("en").format("dddd, DD MMMM")} \n\n${groupNumber}: ${schedule[groupNumber]}`,
+      );
+    } else {
+      await ctx.reply(fallbackMsg);
+    }
+  };
+
+  const sendAllScheduleCommand = async (
+    ctx: Context,
+    date: Dayjs,
+    fallbackMsg: string,
+  ): Promise<void> => {
+    if (!ctx.from) return;
+
+    const schedule = getScheduleByDate(date);
+
+    if (schedule) {
+      let scheduleStr = "";
+      for (let k in schedule) {
+        let groupNumber = k as keyof Schedule;
+        scheduleStr += `${groupNumber}: ${schedule[groupNumber]} \n`;
+      }
+      await ctx.reply(
+        `${date.locale("en").format("dddd, DD MMMM")} \n\n${scheduleStr}`,
+      );
+    } else {
+      await ctx.reply(fallbackMsg);
+    }
+  };
+
   bot.command("group", async (ctx) => {
     const user: User | null = getUserByTgUserId(ctx.from.id);
     const args = ctx.message.text.split(" ").slice(1);
@@ -170,6 +214,30 @@ export const createBot = (token: string): ZoeBot => {
     ) as keyof Schedule;
 
     await setUsersGroup(ctx, user, groupNumber);
+  });
+
+  bot.command("today", async (ctx) => {
+    await sendPersonalScheduleCommand(ctx, dayjs(), "Something went wrong 😔");
+  });
+
+  bot.command("tomorrow", async (ctx) => {
+    await sendPersonalScheduleCommand(
+      ctx,
+      dayjs().add(1, "day"),
+      `Looks like tomorrow's outage schedule hasn't been published yet.\nI'll notify you when it's published 👀`,
+    );
+  });
+
+  bot.command("today_all", async (ctx) => {
+    await sendAllScheduleCommand(ctx, dayjs(), "Something went wrong 😔");
+  });
+
+  bot.command("tomorrow_all", async (ctx) => {
+    await sendAllScheduleCommand(
+      ctx,
+      dayjs().add(1, "day"),
+      `Looks like tomorrow's outage schedule hasn't been published yet.\nI'll notify you when it's published 👀`,
+    );
   });
 
   bot.command("help", async (ctx) => {
@@ -183,6 +251,22 @@ export const createBot = (token: string): ZoeBot => {
     bot.launch(() => console.log("Zoe bot is running"));
 
     bot.telegram.setMyCommands([
+      {
+        command: "today",
+        description: "Today for your group",
+      },
+      {
+        command: "tomorrow",
+        description: "Tomorrow for your group",
+      },
+      {
+        command: "today_all",
+        description: "Today for all groups",
+      },
+      {
+        command: "tomorrow_all",
+        description: "Tomorrow for all groups",
+      },
       {
         command: "help",
         description: "Shows help information",
