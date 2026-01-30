@@ -1,4 +1,7 @@
 import "dotenv/config";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
 import { parse } from "./parser.js";
 import {
   dbInit,
@@ -9,6 +12,10 @@ import {
 import { getData } from "./request.js";
 import { createBot, type ZoeBot } from "./bot.js";
 import { ScheduleType, type Schedule } from "./types.js";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.tz.setDefault("Europe/Kyiv");
 
 const INTERVAL = 10 * 60 * 1000; // 10 minutes
 // const INTERVAL = 30 * 1000; // 30 seconds for testing

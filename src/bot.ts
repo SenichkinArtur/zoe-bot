@@ -81,7 +81,7 @@ export const createBot = (token: string): ZoeBot => {
       await ctx.reply(
         `Nice! Group ${groupNumber} it is ⚡ \nI'll keep an eye on things for you 👀`,
       );
-      const todaysDate = dayjs();
+      const todaysDate = dayjs.tz();
       const currentSchedule: Schedule | null = getScheduleByDate(todaysDate);
 
       if (!currentSchedule) return;
@@ -217,25 +217,25 @@ export const createBot = (token: string): ZoeBot => {
   });
 
   bot.command("today", async (ctx) => {
-    await sendPersonalScheduleCommand(ctx, dayjs(), "Something went wrong 😔");
+    await sendPersonalScheduleCommand(ctx, dayjs.tz(), "Something went wrong 😔");
   });
 
   bot.command("tomorrow", async (ctx) => {
     await sendPersonalScheduleCommand(
       ctx,
-      dayjs().add(1, "day"),
+      dayjs.tz().add(1, "day"),
       `Looks like tomorrow's outage schedule hasn't been published yet.\nI'll notify you when it's published 👀`,
     );
   });
 
   bot.command("today_all", async (ctx) => {
-    await sendAllScheduleCommand(ctx, dayjs(), "Something went wrong 😔");
+    await sendAllScheduleCommand(ctx, dayjs.tz(), "Something went wrong 😔");
   });
 
   bot.command("tomorrow_all", async (ctx) => {
     await sendAllScheduleCommand(
       ctx,
-      dayjs().add(1, "day"),
+      dayjs.tz().add(1, "day"),
       `Looks like tomorrow's outage schedule hasn't been published yet.\nI'll notify you when it's published 👀`,
     );
   });
