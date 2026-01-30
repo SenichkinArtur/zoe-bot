@@ -14,6 +14,7 @@ let removeUserByTgUserIdStmt: Statement;
 let getUserByTgUserIdStmt: Statement;
 let getAllUsersStmt: Statement;
 let setUserGroupNumberByIdStmt: Statement;
+let setUsersLocaleByIdStmt: Statement;
 let insertScheduleStmt: Statement;
 let updateScheduleStmt: Statement;
 let checkIfScheduleExistsByDateStmt: Statement;
@@ -49,7 +50,7 @@ export const dbInit = () => {
   //   )
   // `);
   insertUserStmt = db.prepare(
-    "INSERT INTO users (telegram_user_id) VALUES (?)",
+    "INSERT INTO users (telegram_user_id, locale) VALUES (?, ?)",
   );
   removeUserByTgUserIdStmt = db.prepare(
     "DELETE FROM users WHERE telegram_user_id = ?",
@@ -60,6 +61,9 @@ export const dbInit = () => {
   getAllUsersStmt = db.prepare("SELECT * FROM users");
   setUserGroupNumberByIdStmt = db.prepare(
     "UPDATE users SET group_number = ? WHERE id = ?",
+  );
+  setUsersLocaleByIdStmt = db.prepare(
+    "UPDATE users SET locale = ? WHERE id = ?",
   );
   insertScheduleStmt = db.prepare(
     "INSERT INTO schedules (date, schedules) VALUES (?, ?)",
@@ -73,9 +77,9 @@ export const dbInit = () => {
   getScheduleByDateStmt = db.prepare("SELECT * FROM schedules WHERE date = ?");
 };
 
-export const insertUser = (telegramUserId: number): boolean => {
+export const insertUser = (telegramUserId: number, locale: string): boolean => {
   try {
-    insertUserStmt.run(telegramUserId);
+    insertUserStmt.run(telegramUserId, locale);
     return true;
   } catch (e) {
     console.error(e);
@@ -137,6 +141,19 @@ export const setUserGroupNumberById = (
 ): boolean => {
   try {
     setUserGroupNumberByIdStmt.run(groupNumber, userId);
+    return true;
+  } catch (e) {
+    console.error(e);
+    return false;
+  }
+};
+
+export const setUsersLocaleById = (
+  userId: number,
+  locale: string,
+): boolean => {
+  try {
+    setUsersLocaleByIdStmt.run(locale, userId);
     return true;
   } catch (e) {
     console.error(e);

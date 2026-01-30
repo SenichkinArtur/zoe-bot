@@ -1,6 +1,5 @@
 export type User = {
   id: number;
-  date: string;
   telegram_user_id: number;
   group_number: string;
   locale: string;

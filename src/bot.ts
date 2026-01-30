@@ -10,6 +10,7 @@ import {
   insertUser,
   removeUserByTgUserId,
   setUserGroupNumberById,
+  setUsersLocaleById,
 } from "./db.js";
 import dayjs from "dayjs";
 
@@ -27,6 +28,7 @@ const GROUP_NUMBERS = [
   "6.1",
   "6.2",
 ];
+const SUPPORTED_LOCALES: [string, string, string] = ["en", "ru", "ua"];
 
 export type ZoeBot = {
   init: () => void;
@@ -48,7 +50,12 @@ export const createBot = (token: string): ZoeBot => {
       if (user) {
         removeUserByTgUserId(ctx.from.id);
       }
-      insertUser(ctx.from.id);
+      const languageCode = ctx.from.language_code;
+      const locale: string =
+        languageCode && SUPPORTED_LOCALES.includes(languageCode)
+          ? languageCode
+          : "en";
+      insertUser(ctx.from.id, locale);
       await ctx.reply(`
         Hey, I'm Zoe 😊 \n\nI'll keep you updated on power outage schedules\n\nTo get started, just send me your outage group number (for example: 1.1, 1.2)
       `);
@@ -213,11 +220,37 @@ export const createBot = (token: string): ZoeBot => {
       (n) => n === commandValue,
     ) as keyof Schedule;
 
-    await setUsersGroup(ctx, user, groupNumber);
+    if (groupNumber) {
+      await setUsersGroup(ctx, user, groupNumber);
+    } else {
+      await ctx.reply(
+        `That one confused me a bit 😅 \nCorrect command - /group <value>\nExample: /group 1.2`,
+      );
+    }
+  });
+
+  bot.command("locale", async (ctx) => {
+    const user: User | null = getUserByTgUserId(ctx.from.id);
+    const args = ctx.message.text.split(" ").slice(1);
+    const commandValue = args[0]?.toLocaleLowerCase();
+    const isValid = commandValue && SUPPORTED_LOCALES.includes(commandValue);
+
+    if (isValid && user) {
+      setUsersLocaleById(user.id, commandValue);
+      await ctx.reply("Nice! Locale is set");
+    } else {
+      await ctx.reply(
+        `Unsupported value 😅 \nCorrect command - /locale <en/ru/ua>\nExample: /locale en`,
+      );
+    }
   });
 
   bot.command("today", async (ctx) => {
-    await sendPersonalScheduleCommand(ctx, dayjs.tz(), "Something went wrong 😔");
+    await sendPersonalScheduleCommand(
+      ctx,
+      dayjs.tz(),
+      "Something went wrong 😔",
+    );
   });
 
   bot.command("tomorrow", async (ctx) => {
@@ -244,6 +277,7 @@ export const createBot = (token: string): ZoeBot => {
     ctx.reply(`
 - /start - Starts the bot
 - /group <number> - Change your group number (e.g. /group 1.2);
+- /locale <en/ru/ua> - Change your locale (e.g. /locale ua);
     `);
   });
 
