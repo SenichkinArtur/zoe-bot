@@ -17,7 +17,6 @@ let setUserGroupNumberByIdStmt: Statement;
 let setUsersLocaleByIdStmt: Statement;
 let insertScheduleStmt: Statement;
 let updateScheduleStmt: Statement;
-let checkIfScheduleExistsByDateStmt: Statement;
 let getScheduleByDateStmt: Statement;
 
 export const dbInit = () => {
@@ -70,9 +69,6 @@ export const dbInit = () => {
   );
   updateScheduleStmt = db.prepare(
     "UPDATE schedules SET schedules = ? WHERE date = ?",
-  );
-  checkIfScheduleExistsByDateStmt = db.prepare(
-    "SELECT EXISTS (SELECT 1 FROM schedules WHERE date = ?) AS exists_flag",
   );
   getScheduleByDateStmt = db.prepare("SELECT * FROM schedules WHERE date = ?");
 };
@@ -186,19 +182,6 @@ export const updateSchedule = (date: Dayjs, schedule: Schedule): boolean => {
     return false;
   }
 };
-
-// export const checkIfScheduleExistsByDate = (date: Dayjs): boolean => {
-//   try {
-//     const result = checkIfScheduleExistsByDateStmt.get(
-//       date.format(DB_DATE_FORMAT),
-//     ) as { exists_flag: number } | undefined;
-
-//     return !!result?.exists_flag;
-//   } catch (e) {
-//     console.error(e);
-//     return false;
-//   }
-// };
 
 export const getScheduleByDate = (date: Dayjs): Schedule | null => {
   try {
