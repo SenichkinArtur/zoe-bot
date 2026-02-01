@@ -1,0 +1,14 @@
+{
+  "greeting": "Hey, I'm Zoe 😊 \n\nI'll keep you updated on power outage schedules\n\nTo get started, just send me your outage group number (for example: 1.1, 1.2)",
+  "groupSet": "Nice! Group {{groupNumber}} it is ⚡ \nI'll keep an eye on things for you 👀",
+  "wrongGroup": "That one confused me a bit 😅 \nTry sending just the group number - 1.1, 1.2, and so on",
+  "wrongGroupCommand": "That one confused me a bit 😅 \nCorrect command - /group <value>\nExample: /group 1.2",
+  "updated": "Updated",
+  "localeSet": "Nice! Locale is set ✅",
+  "wrongLocale": "Unsupported language 😅 \nCorrect command - /locale <en/ru/ua>\nExample: /locale en",
+  "somethingWentWrong": "Something went wrong 😔",
+  "tomorrowMissing": "Looks like tomorrow's outage schedule hasn't been published yet.\nI'll notify you when it's published 👀",
+  "helpStart": "/start - Starts the bot",
+  "helpGroup": "/group <number> - Change your group number (e.g. /group 1.2)",
+  "helpLocale": "/locale <en/ru/uk> - Change your locale (e.g. /locale uk)"
+}

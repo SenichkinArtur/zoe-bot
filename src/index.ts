@@ -2,6 +2,7 @@ import "dotenv/config";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
+import i18n from "i18n";
 import { parse } from "./parser.js";
 import {
   dbInit,
@@ -16,6 +17,11 @@ import { ScheduleType, type Schedule } from "./types.js";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.tz.setDefault("Europe/Kyiv");
+
+i18n.configure({
+  locales: ["en", "ru", "uk"],
+  directory: "./locales",
+});
 
 const INTERVAL = 10 * 60 * 1000; // 10 minutes
 // const INTERVAL = 30 * 1000; // 30 seconds for testing
