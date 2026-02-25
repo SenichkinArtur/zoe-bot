@@ -52,21 +52,25 @@ const fetchAndUpdate = async (zoeBot: ZoeBot) => {
     return;
   }
 
-  const { date, schedule, scheduleType } = parsedData;
+  // TODO: remove scheduleType later if it is confirmed to be unnecessary
+  const { date, schedule, scheduleType: _scheduleType } = parsedData;
   const currentSchedule = getScheduleByDate(date);
 
   if (JSON.stringify(schedule) === JSON.stringify(currentSchedule)) {
     return;
   }
 
-  if (scheduleType === ScheduleType.New) {
+  if (currentSchedule === null) {
     insertSchedule(date, schedule);
     await zoeBot.sendMessagesNew(date, schedule);
 
     return;
   }
 
-  if (scheduleType === ScheduleType.Updated && currentSchedule) {
+  if (
+    currentSchedule &&
+    JSON.stringify(schedule) !== JSON.stringify(currentSchedule)
+  ) {
     const updatedSchedule: Partial<Schedule> = {};
 
     for (const [key, value] of Object.entries(schedule) as [
