@@ -105,7 +105,7 @@ export const createBot = (token: string): ZoeBot => {
         await bot.telegram
           .sendMessage(
             user.telegram_user_id,
-            `${todaysDate.locale(user.locale).format("dddd, DD MMMM")} \n\n${groupNumber}: ${currentSchedule[groupNumber]}`,
+            `${todaysDate.locale(user.locale).format("dddd, D MMMM")} \n\n${groupNumber}: ${currentSchedule[groupNumber]}`,
           )
           .catch((e) => {
             console.error(
@@ -136,7 +136,7 @@ export const createBot = (token: string): ZoeBot => {
           return bot.telegram
             .sendMessage(
               user.telegram_user_id,
-              `${date.locale(user.locale).format("dddd, DD MMMM")} \n\n${groupKey}: ${schedule[groupKey]}`,
+              `${date.locale(user.locale).format("dddd, D MMMM")} \n\n${groupKey}: ${schedule[groupKey]}`,
             )
             .catch((e) => {
               console.error(
@@ -167,7 +167,7 @@ export const createBot = (token: string): ZoeBot => {
           return bot.telegram
             .sendMessage(
               user.telegram_user_id,
-              `${i18n.__({ phrase: "updated", locale: user.locale })}: ${date.locale(user.locale).format("dddd, DD MMMM")} \n\n${groupKey}: ${updatedSchedule[groupKey]}`,
+              `${i18n.__({ phrase: "updated", locale: user.locale })}: ${date.locale(user.locale).format("dddd, D MMMM")} \n\n${groupKey}: ${updatedSchedule[groupKey]}`,
             )
             .catch((e) => {
               console.error(
@@ -198,7 +198,7 @@ export const createBot = (token: string): ZoeBot => {
         const groupNumber = user.group_number as keyof Schedule;
 
         await ctx.reply(
-          `${date.locale(user.locale).format("dddd, DD MMMM")} \n\n${groupNumber}: ${schedule[groupNumber]}`,
+          `${date.locale(user.locale).format("dddd, D MMMM")} \n\n${groupNumber}: ${schedule[groupNumber]}`,
         );
       } else {
         await ctx.reply(i18n.__({ phrase: fallbackMsg, locale: user.locale }));
@@ -227,7 +227,7 @@ export const createBot = (token: string): ZoeBot => {
           scheduleStr += `${groupNumber}: ${schedule[groupNumber]} \n`;
         }
         await ctx.reply(
-          `${date.locale(user.locale).format("dddd, DD MMMM")} \n\n${scheduleStr}`,
+          `${date.locale(user.locale).format("dddd, D MMMM")} \n\n${scheduleStr}`,
         );
       } else {
         await ctx.reply(i18n.__({ phrase: fallbackMsg, locale: user.locale }));

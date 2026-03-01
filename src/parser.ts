@@ -79,7 +79,7 @@ const parseTitleNew = (title: string): Dayjs | null => {
   if (day && month) {
     return dayjs(
       `${day.match(/\d+$/)?.at(0)} ${month}`.toLowerCase(),
-      "DD MMMM",
+      "D MMMM",
       "uk",
     );
   }
@@ -92,7 +92,7 @@ const parseTitleUpdated = (title: string): Dayjs | null => {
   const month = titleArray[4];
 
   if (day && month) {
-    return dayjs(`${day} ${month}`.toLowerCase(), "DD MMMM", "uk");
+    return dayjs(`${day} ${month}`.toLowerCase(), "D MMMM", "uk");
   }
 
   return null;
