@@ -103,9 +103,7 @@ export const createBot = (token: string): ZoeBot => {
     groupNumbers: (keyof Schedule)[],
   ): Promise<void> => {
     try {
-      console.log("setUsersGroup groupNumbers: ", groupNumbers);
       if (groupNumbers.length && user) {
-        console.log("inside if groupNumbers.length && user: ");
         setUserGroupNumberById(user.id, groupNumbers.join(" "));
         await ctx.reply(
           i18n.__(

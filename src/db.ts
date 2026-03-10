@@ -147,7 +147,6 @@ export const setUserGroupNumberById = (
   groupNumber: string,
 ): boolean => {
   try {
-    console.log("setUserGroupNumberById userId: ", userId, "groupNumber: ", groupNumber);
     setUserGroupNumberByIdStmt.run(groupNumber, userId);
     return true;
   } catch (e) {
