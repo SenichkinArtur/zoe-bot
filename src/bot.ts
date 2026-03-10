@@ -86,7 +86,10 @@ export const createBot = (token: string): ZoeBot => {
     });
   };
 
-  const generateScheduleMessage = (groupNumbers: (keyof Schedule)[], schedule: Partial<Schedule>) => {
+  const generateScheduleMessage = (
+    groupNumbers: (keyof Schedule)[],
+    schedule: Partial<Schedule>,
+  ) => {
     let scheduleMessage = "";
     groupNumbers.forEach((groupNumber) => {
       scheduleMessage += `${groupNumber}: ${schedule[groupNumber]}\n`;
@@ -100,7 +103,9 @@ export const createBot = (token: string): ZoeBot => {
     groupNumbers: (keyof Schedule)[],
   ): Promise<void> => {
     try {
+      console.log("setUsersGroup groupNumbers: ", groupNumbers);
       if (groupNumbers.length && user) {
+        console.log("inside if groupNumbers.length && user: ");
         setUserGroupNumberById(user.id, groupNumbers.join(" "));
         await ctx.reply(
           i18n.__(
@@ -117,7 +122,10 @@ export const createBot = (token: string): ZoeBot => {
 
         if (!currentSchedule) return;
 
-        const scheduleMessage = generateScheduleMessage(groupNumbers, currentSchedule);
+        const scheduleMessage = generateScheduleMessage(
+          groupNumbers,
+          currentSchedule,
+        );
 
         await bot.telegram
           .sendMessage(
@@ -151,8 +159,13 @@ export const createBot = (token: string): ZoeBot => {
         users.map(async (user) => {
           if (!user.group_number) return;
 
-          const groupNumbers = user.group_number.split(" ") as (keyof Schedule)[];
-          const scheduleMessage = generateScheduleMessage(groupNumbers, schedule);
+          const groupNumbers = user.group_number.split(
+            " ",
+          ) as (keyof Schedule)[];
+          const scheduleMessage = generateScheduleMessage(
+            groupNumbers,
+            schedule,
+          );
           return bot.telegram
             .sendMessage(
               user.telegram_user_id,
@@ -191,7 +204,10 @@ export const createBot = (token: string): ZoeBot => {
             updatedGroups.includes(n),
           );
 
-          const scheduleMessage = generateScheduleMessage(userGroupNumbersToSend, updatedSchedule);
+          const scheduleMessage = generateScheduleMessage(
+            userGroupNumbersToSend,
+            updatedSchedule,
+          );
 
           return bot.telegram
             .sendMessage(
@@ -251,7 +267,10 @@ export const createBot = (token: string): ZoeBot => {
       if (!user || !user.group_number) return;
 
       if (schedule) {
-        const scheduleMessage = generateScheduleMessage(Object.keys(schedule) as (keyof Schedule)[], schedule);
+        const scheduleMessage = generateScheduleMessage(
+          Object.keys(schedule) as (keyof Schedule)[],
+          schedule,
+        );
         await ctx.reply(
           `${date.locale(user.locale).format("dddd, D MMMM")} \n\n${scheduleMessage}`,
         );
