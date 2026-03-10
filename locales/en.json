@@ -3,13 +3,13 @@
   "groupSetOne": "Great! Your group is {{groupNumber}} ⚡ \nI'll keep an eye on things for you 👀",
   "groupSetOther": "Great! Your groups are {{groupNumber}} ⚡ \nI'll keep an eye on things for you 👀",
   "wrongGroup": "That one confused me a bit 😅 \nTry sending just the group number or several group numbers (for example: 1.1, 1.2)",
-  "wrongGroupCommand": "That one confused me a bit 😅 \nCorrect command - /group <value>\nExample: /group 1.2",
+  "wrongGroupCommand": "That one confused me a bit 😅 \nCorrect command - /group <number> <number>\nExample: /group 1.1 1.2",
   "updated": "Updated",
   "localeSet": "Nice! Locale is set ✅",
   "wrongLocale": "Unsupported language 😅 \nCorrect command - /locale <en/ru/ua>\nExample: /locale en",
   "somethingWentWrong": "Something went wrong 😔",
   "tomorrowMissing": "Looks like tomorrow's outage schedule hasn't been published yet.\nI'll notify you when it's published 👀",
   "helpStart": "/start - Starts the bot",
-  "helpGroup": "/group <number> <number> - Change your group number or set multiple groups (e.g. /group 1.2 1.3)",
+  "helpGroup": "/group <number> <number> - Change your group number or set multiple groups (e.g. /group 1.1 1.2)",
   "helpLocale": "/locale <en/ru/uk> - Change your locale (e.g. /locale uk)"
 }
