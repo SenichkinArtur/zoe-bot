@@ -72,11 +72,11 @@ export const createBot = (token: string): ZoeBot => {
           if (!user.group_number) {
             if ("text" in ctx.update.message) {
               const text = ctx.update.message.text;
-              const groupNumber = GROUP_NUMBERS.find(
-                (n) => n === text,
-              ) as keyof Schedule;
+              const groupNumbers = text
+                .split(" ")
+                .filter((v) => GROUP_NUMBERS.includes(v)) as (keyof Schedule)[];
 
-              await setUsersGroup(ctx, user, groupNumber);
+              await setUsersGroup(ctx, user, groupNumbers);
             }
           }
         }
@@ -86,26 +86,43 @@ export const createBot = (token: string): ZoeBot => {
     });
   };
 
+  const generateScheduleMessage = (groupNumbers: (keyof Schedule)[], schedule: Partial<Schedule>) => {
+    let scheduleMessage = "";
+    groupNumbers.forEach((groupNumber) => {
+      scheduleMessage += `${groupNumber}: ${schedule[groupNumber]}\n`;
+    });
+    return scheduleMessage;
+  };
+
   const setUsersGroup = async (
     ctx: Context,
     user: User,
-    groupNumber: keyof Schedule,
+    groupNumbers: (keyof Schedule)[],
   ): Promise<void> => {
     try {
-      if (groupNumber && user) {
-        setUserGroupNumberById(user.id, groupNumber);
+      if (groupNumbers.length && user) {
+        setUserGroupNumberById(user.id, groupNumbers.join(" "));
         await ctx.reply(
-          i18n.__({ phrase: "groupSet", locale: user.locale }, { groupNumber }),
+          i18n.__(
+            {
+              phrase:
+                groupNumbers.length === 1 ? "groupSetOne" : "groupSetOther",
+              locale: user.locale,
+            },
+            { groupNumber: groupNumbers.join(" ") },
+          ),
         );
         const todaysDate = dayjs.tz();
         const currentSchedule: Schedule | null = getScheduleByDate(todaysDate);
 
         if (!currentSchedule) return;
 
+        const scheduleMessage = generateScheduleMessage(groupNumbers, currentSchedule);
+
         await bot.telegram
           .sendMessage(
             user.telegram_user_id,
-            `${todaysDate.locale(user.locale).format("dddd, D MMMM")} \n\n${groupNumber}: ${currentSchedule[groupNumber]}`,
+            `${todaysDate.locale(user.locale).format("dddd, D MMMM")} \n\n${scheduleMessage}`,
           )
           .catch((e) => {
             console.error(
@@ -132,11 +149,14 @@ export const createBot = (token: string): ZoeBot => {
 
       await Promise.all(
         users.map(async (user) => {
-          const groupKey = user.group_number as keyof Schedule;
+          if (!user.group_number) return;
+
+          const groupNumbers = user.group_number.split(" ") as (keyof Schedule)[];
+          const scheduleMessage = generateScheduleMessage(groupNumbers, schedule);
           return bot.telegram
             .sendMessage(
               user.telegram_user_id,
-              `${date.locale(user.locale).format("dddd, D MMMM")} \n\n${groupKey}: ${schedule[groupKey]}`,
+              `${date.locale(user.locale).format("dddd, D MMMM")} \n\n${scheduleMessage}`,
             )
             .catch((e) => {
               console.error(
@@ -163,11 +183,20 @@ export const createBot = (token: string): ZoeBot => {
 
       await Promise.all(
         usersToSend.map(async (user) => {
-          const groupKey = user.group_number as keyof Schedule;
+          if (!user.group_number) return;
+          const userGroupNumbers = user.group_number.split(
+            " ",
+          ) as (keyof Schedule)[];
+          const userGroupNumbersToSend = userGroupNumbers.filter((n) =>
+            updatedGroups.includes(n),
+          );
+
+          const scheduleMessage = generateScheduleMessage(userGroupNumbersToSend, updatedSchedule);
+
           return bot.telegram
             .sendMessage(
               user.telegram_user_id,
-              `${i18n.__({ phrase: "updated", locale: user.locale })}: ${date.locale(user.locale).format("dddd, D MMMM")} \n\n${groupKey}: ${updatedSchedule[groupKey]}`,
+              `${i18n.__({ phrase: "updated", locale: user.locale })}: ${date.locale(user.locale).format("dddd, D MMMM")} \n\n${scheduleMessage}`,
             )
             .catch((e) => {
               console.error(
@@ -192,13 +221,14 @@ export const createBot = (token: string): ZoeBot => {
 
       const schedule = getScheduleByDate(date);
       const user = getUserByTgUserId(ctx.from.id);
-      if (!user) return;
+      if (!user || !user.group_number) return;
 
       if (schedule) {
-        const groupNumber = user.group_number as keyof Schedule;
+        const groupNumbers = user.group_number.split(" ") as (keyof Schedule)[];
+        const scheduleMessage = generateScheduleMessage(groupNumbers, schedule);
 
         await ctx.reply(
-          `${date.locale(user.locale).format("dddd, D MMMM")} \n\n${groupNumber}: ${schedule[groupNumber]}`,
+          `${date.locale(user.locale).format("dddd, D MMMM")} \n\n${scheduleMessage}`,
         );
       } else {
         await ctx.reply(i18n.__({ phrase: fallbackMsg, locale: user.locale }));
@@ -218,16 +248,12 @@ export const createBot = (token: string): ZoeBot => {
 
       const schedule = getScheduleByDate(date);
       const user = getUserByTgUserId(ctx.from.id);
-      if (!user) return;
+      if (!user || !user.group_number) return;
 
       if (schedule) {
-        let scheduleStr = "";
-        for (let k in schedule) {
-          let groupNumber = k as keyof Schedule;
-          scheduleStr += `${groupNumber}: ${schedule[groupNumber]} \n`;
-        }
+        const scheduleMessage = generateScheduleMessage(Object.keys(schedule) as (keyof Schedule)[], schedule);
         await ctx.reply(
-          `${date.locale(user.locale).format("dddd, D MMMM")} \n\n${scheduleStr}`,
+          `${date.locale(user.locale).format("dddd, D MMMM")} \n\n${scheduleMessage}`,
         );
       } else {
         await ctx.reply(i18n.__({ phrase: fallbackMsg, locale: user.locale }));
@@ -242,13 +268,12 @@ export const createBot = (token: string): ZoeBot => {
       const user: User | null = getUserByTgUserId(ctx.from.id);
       if (!user) return;
       const args = ctx.message.text.split(" ").slice(1);
-      const commandValue = args.join("");
-      const groupNumber = GROUP_NUMBERS.find(
-        (n) => n === commandValue,
-      ) as keyof Schedule;
+      const groupNumbers = args.filter((v) =>
+        GROUP_NUMBERS.includes(v),
+      ) as (keyof Schedule)[];
 
-      if (groupNumber) {
-        await setUsersGroup(ctx, user, groupNumber);
+      if (groupNumbers.length) {
+        await setUsersGroup(ctx, user, groupNumbers);
       } else {
         await ctx.reply(
           i18n.__({ phrase: "wrongGroupCommand", locale: user.locale }),

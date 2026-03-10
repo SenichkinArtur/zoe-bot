@@ -112,7 +112,7 @@ export const parse = (
 
   const lastArticleArray = lastArticle.split("\n"); // last posted schedule
   const lastArticleTitle = lastArticleArray.find((a: string) =>
-    a.includes("ПО ЗАПОРІЗЬКІЙ ОБЛАСТІ"),
+    a.includes("ПО ЗАПОРІЗЬКІЙ ОБЛАСТІ") || a.includes("СКОРЕГОВАНИЙ"),
   );
   if (!lastArticleTitle) return undefined;
 

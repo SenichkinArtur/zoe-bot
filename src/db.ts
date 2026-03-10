@@ -98,11 +98,22 @@ export const getUsersByGroupNumbers = (groupNumbers: string[]): User[] => {
   if (groupNumbers.length === 0) return [];
 
   try {
-    const placeholders = groupNumbers.map(() => "?").join(", ");
-    const stmt = db.prepare(
-      `SELECT * FROM users WHERE group_number IN (${placeholders})`,
-    );
-    const users = stmt.all(...groupNumbers) as User[];
+    const conditions = groupNumbers
+      .map(
+        () =>
+          `(group_number = ? OR group_number LIKE ? OR group_number LIKE ? OR group_number LIKE ?)`,
+      )
+      .join(" OR ");
+
+    const params = groupNumbers.flatMap((groupNumber) => [
+      groupNumber, // exact match
+      `${groupNumber} %`, // at the start
+      `% ${groupNumber}`, // at the end
+      `% ${groupNumber} %`, // in the middle
+    ]);
+
+    const stmt = db.prepare(`SELECT DISTINCT * FROM users WHERE ${conditions}`);
+    const users = stmt.all(...params) as User[];
 
     return users;
   } catch (e) {
@@ -144,10 +155,7 @@ export const setUserGroupNumberById = (
   }
 };
 
-export const setUsersLocaleById = (
-  userId: number,
-  locale: string,
-): boolean => {
+export const setUsersLocaleById = (userId: number, locale: string): boolean => {
   try {
     setUsersLocaleByIdStmt.run(locale, userId);
     return true;
